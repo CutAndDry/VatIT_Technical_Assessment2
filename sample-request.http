@@ -1,0 +1,29 @@
+# Sample Request Payload
+
+POST http://localhost:5000/api/transaction/process
+Content-Type: application/json
+
+{
+  "transactionId": "txn_123",
+  "merchantId": "merchant_456",
+  "customerId": "customer_789",
+  "destination": {
+    "country": "US",
+    "state": "CA",
+    "city": "Los Angeles"
+  },
+  "items": [
+    {
+      "id": "item_1",
+      "category": "SOFTWARE",
+      "amount": 100.00
+    },
+    {
+      "id": "item_2",
+      "category": "PHYSICAL_GOODS",
+      "amount": 50.00
+    }
+  ],
+  "totalAmount": 150.00,
+  "currency": "USD"
+}
