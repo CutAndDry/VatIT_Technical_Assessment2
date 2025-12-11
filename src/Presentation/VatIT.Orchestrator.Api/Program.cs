@@ -4,8 +4,6 @@ using VatIT.Application.Services;
 using VatIT.Infrastructure.Configuration;
 using VatIT.Infrastructure.Services;
 using Polly;
-using Polly.Timeout;
-using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,11 +47,27 @@ builder.Services.AddHttpClient<IWorkerClient, WorkerClient>()
     })
     .ConfigureHttpClient(client =>
     {
-        client.Timeout = TimeSpan.FromSeconds(5);
+        // Allow longer timeouts locally for flaky/high-load tests; Polly will enforce a slightly shorter timeout.
+        client.Timeout = TimeSpan.FromSeconds(60);
     })
-    .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(5)))
-    .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, _ => TimeSpan.FromMilliseconds(200)))
+    // Register correlation handler used to propagate X-Correlation-ID to worker calls
+    .AddHttpMessageHandler<VatIT.Orchestrator.Api.Handlers.CorrelationHandler>()
+    // Bulkhead to limit concurrent calls to downstream workers and avoid cascading failures under heavy load
+    // Increased limits for local performance testing; tune these for your environment.
+    .AddPolicyHandler(Policy.BulkheadAsync<HttpResponseMessage>(maxParallelization: 200, maxQueuingActions: 800))
+    .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(55)))
+    .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(3, attempt =>
+    {
+        // exponential backoff with small jitter
+        var backoffMs = Math.Pow(2, attempt) * 200;
+        var jitter = Random.Shared.Next(0, 200);
+        return TimeSpan.FromMilliseconds(backoffMs + jitter);
+    }))
     .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+
+builder.Services.AddTransient<VatIT.Orchestrator.Api.Handlers.CorrelationHandler>();
+// Make HttpContext available for correlation propagation
+builder.Services.AddHttpContextAccessor();
 
 // Response compression to reduce serialization and network overhead in dev
 builder.Services.AddResponseCompression();
@@ -87,6 +101,24 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseAuthorization();
+
+// Correlation ID middleware: ensure every request has an X-Correlation-ID and include it in log scope
+app.Use(async (context, next) =>
+{
+    const string headerName = "X-Correlation-ID";
+    if (!context.Request.Headers.ContainsKey(headerName))
+    {
+        context.Request.Headers[headerName] = Guid.NewGuid().ToString();
+    }
+
+    using (var scope = app.Logger.BeginScope(new Dictionary<string, object>
+    {
+        ["CorrelationId"] = context.Request.Headers[headerName].ToString()
+    }))
+    {
+        await next();
+    }
+});
 
 app.MapControllers();
 

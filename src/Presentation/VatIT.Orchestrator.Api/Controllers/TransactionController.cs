@@ -27,7 +27,14 @@ public class TransactionController : ControllerBase
         try
         {
             _logger.LogInformation("Processing transaction {TransactionId}", request.TransactionId);
-            
+
+            // Support a simple test hook: if MerchantId == "FORCEFAIL" then return business failure
+            if (string.Equals(request.MerchantId, "FORCEFAIL", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Transaction {TransactionId} forced to fail for testing (MerchantId=FORCEFAIL)", request.TransactionId);
+                return StatusCode(422, new { error = "Transaction processing failed (forced)", status = "FAILED", details = new[] { "Forced failure by test flag" }, gates = new[] { new { name = "validation", passed = false, message = "Skipped (forced failure)" } } });
+            }
+
             var response = await _orchestrationService.ProcessTransactionAsync(request, cancellationToken);
 
             _logger.LogInformation(
@@ -39,6 +46,14 @@ public class TransactionController : ControllerBase
             {
                 _logger.LogError("Transaction {TransactionId} failed during processing: {Details}", request.TransactionId, response.AuditTrail.LastOrDefault());
                 return StatusCode(500, new { error = "An error occurred processing the transaction", details = response.AuditTrail });
+            }
+
+            // Business-level failure (e.g. validation/applicability/exemption failed).
+            // Return 422 so clients and load-testers can distinguish HTTP success from business success.
+            if (response.Status != "CALCULATED")
+            {
+                _logger.LogWarning("Transaction {TransactionId} completed with non-calculated status {Status}", request.TransactionId, response.Status);
+                return StatusCode(422, new { error = "Transaction processing failed", status = response.Status, details = response.AuditTrail, gates = response.Gates });
             }
 
             return Ok(response);

@@ -103,21 +103,21 @@ public class OrchestrationServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Status.Should().Be("FAILED");
-        // All gates still run; first gate should be failing but downstream workers are invoked
-        result.Gates.Should().HaveCount(3);
+        // Short-circuit: downstream gates are marked as skipped and not invoked
+        result.Gates.Should().HaveCount(4);
         result.Gates[0].Passed.Should().BeFalse();
-        result.Calculation.Should().NotBeNull();
+        result.Calculation.Should().BeNull();
 
-        // Verify subsequent gates were called once
+        // Verify subsequent gates were NOT called due to short-circuit
         _mockWorkerClient.Verify(
             x => x.SendApplicabilityRequestAsync(It.IsAny<ApplicabilityRequestDto>(), It.IsAny<CancellationToken>()), 
-            Times.Once);
+            Times.Never);
         _mockWorkerClient.Verify(
             x => x.SendExemptionRequestAsync(It.IsAny<ExemptionRequestDto>(), It.IsAny<CancellationToken>()), 
-            Times.Once);
+            Times.Never);
         _mockWorkerClient.Verify(
             x => x.SendCalculationRequestAsync(It.IsAny<CalculationRequestDto>(), It.IsAny<CancellationToken>()), 
-            Times.Once);
+            Times.Never);
     }
 
     [Fact]
@@ -154,19 +154,19 @@ public class OrchestrationServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Status.Should().Be("FAILED");
-        // All gates still run; second gate should be failing but downstream workers are invoked
-        result.Gates.Should().HaveCount(3);
+        // Short-circuit: downstream gates are marked as skipped and not invoked
+        result.Gates.Should().HaveCount(4);
         result.Gates[0].Passed.Should().BeTrue();
         result.Gates[1].Passed.Should().BeFalse();
-        result.Calculation.Should().NotBeNull();
+        result.Calculation.Should().BeNull();
 
-        // Verify subsequent gates were called once
+        // Verify subsequent gates were NOT called due to short-circuit
         _mockWorkerClient.Verify(
             x => x.SendExemptionRequestAsync(It.IsAny<ExemptionRequestDto>(), It.IsAny<CancellationToken>()), 
-            Times.Once);
+            Times.Never);
         _mockWorkerClient.Verify(
             x => x.SendCalculationRequestAsync(It.IsAny<CalculationRequestDto>(), It.IsAny<CancellationToken>()), 
-            Times.Once);
+            Times.Never);
     }
 
     [Fact]

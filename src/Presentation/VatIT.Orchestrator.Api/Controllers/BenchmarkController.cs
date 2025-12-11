@@ -60,6 +60,8 @@ public class BenchmarkController : ControllerBase
 
             // pick a sample and give it a fresh TransactionId
             var sample = CloneWithNewId(samples[i % samples.Count]);
+
+            // No forced-fail manipulation here; benchmark uses the generated sample MerchantId values.
             var json = JsonSerializer.Serialize(sample, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 

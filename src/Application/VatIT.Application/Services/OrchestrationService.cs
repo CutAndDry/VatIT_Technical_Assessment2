@@ -54,11 +54,20 @@ public class OrchestrationService : IOrchestrationService
             // record timing
             response.WorkerTimings ??= new Dictionary<string, double>();
             response.WorkerTimings["validation"] = swValidation.Elapsed.TotalMilliseconds;
-
             if (!validationResponse.IsValid)
             {
                 response.Status = "FAILED";
-                // do not short-circuit; continue to run remaining gates for a semi-complete response
+
+                // Mark remaining gates as skipped for the response so callers know what didn't run
+                response.Gates.Add(new GateResult { Name = "applicability", Passed = false, Message = "Skipped due to failed validation" });
+                response.Gates.Add(new GateResult { Name = "exemption", Passed = false, Message = "Skipped due to failed validation" });
+                response.Gates.Add(new GateResult { Name = "calculation", Passed = false, Message = "Skipped due to failed validation" });
+
+                response.WorkerTimings["applicability"] = 0;
+                response.WorkerTimings["exemption"] = 0;
+                response.WorkerTimings["calculation"] = 0;
+
+                return response;
             }
 
             // Gate 2: Applicability
@@ -88,11 +97,18 @@ public class OrchestrationService : IOrchestrationService
 
             // record timing
             response.WorkerTimings["applicability"] = swApplicability.Elapsed.TotalMilliseconds;
-
             if (!applicabilityResponse.IsApplicable)
             {
                 response.Status = "FAILED";
-                // continue to run remaining gates even if not applicable
+
+                // Mark remaining gates as skipped
+                response.Gates.Add(new GateResult { Name = "exemption", Passed = false, Message = "Skipped due to failed applicability" });
+                response.Gates.Add(new GateResult { Name = "calculation", Passed = false, Message = "Skipped due to failed applicability" });
+
+                response.WorkerTimings["exemption"] = 0;
+                response.WorkerTimings["calculation"] = 0;
+
+                return response;
             }
 
             // Gate 3: Exemption Check
@@ -124,11 +140,15 @@ public class OrchestrationService : IOrchestrationService
 
             // record timing
             response.WorkerTimings["exemption"] = swExemption.Elapsed.TotalMilliseconds;
-
             if (!exemptionResponse.Passed)
             {
                 response.Status = "FAILED";
-                // continue to run calculation even if exemptions did not pass
+
+                // Mark calculation as skipped
+                response.Gates.Add(new GateResult { Name = "calculation", Passed = false, Message = "Skipped due to failed exemption" });
+                response.WorkerTimings["calculation"] = 0;
+
+                return response;
             }
 
             // Gate 4: Calculation

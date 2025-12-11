@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VatIT.Orchestrator.Api</name>
+    </assembly>
+    <members>
+        <member name="M:VatIT.Orchestrator.Api.Controllers.BenchmarkController.RunBenchmark(System.String,System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Run a simple benchmark by sending a number of POST requests to a target URL using a small set of sample payloads.
+            </summary>
+            <param name="targetUrl">The URL to POST to (defaults to local orchestrator /api/transaction/process).</param>
+            <param name="totalRequests">Total number of requests to send (default 10000).</param>
+            <param name="concurrency">Max concurrent requests (default 200).</param>
+        </member>
+    </members>
+</doc>
