@@ -28,7 +28,7 @@ public class ExemptionController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ExemptionResponseDto>> CheckExemption([FromBody] ExemptionRequestDto request)
+    public ActionResult<ExemptionResponseDto> CheckExemption([FromBody] ExemptionRequestDto request)
     {
         _logger.LogInformation("Checking exemptions for transaction {TransactionId}", request.TransactionId);
 

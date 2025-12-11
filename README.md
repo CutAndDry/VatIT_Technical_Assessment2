@@ -84,31 +84,31 @@ You need to start all 5 services in separate terminal windows:
 
 **Terminal 1 - Validation Worker:**
 ```powershell
-cd src\VatIT.Worker.Validation
+cd src\Workers\Validation\VatIT.Worker.Validation
 dotnet run
 ```
 
 **Terminal 2 - Applicability Worker:**
 ```powershell
-cd src\VatIT.Worker.Applicability
+cd src\Workers\Applicability\VatIT.Worker.Applicability
 dotnet run
 ```
 
 **Terminal 3 - Exemption Worker:**
 ```powershell
-cd src\VatIT.Worker.Exemption
+cd src\Workers\Exemption\VatIT.Worker.Exemption
 dotnet run
 ```
 
 **Terminal 4 - Calculation Worker:**
 ```powershell
-cd src\VatIT.Worker.Calculation
+cd src\Workers\Calculation\VatIT.Worker.Calculation
 dotnet run
 ```
 
 **Terminal 5 - Orchestrator API:**
 ```powershell
-cd src\VatIT.Orchestrator.Api
+cd src\Presentation\VatIT.Orchestrator.Api
 dotnet run
 ```
 

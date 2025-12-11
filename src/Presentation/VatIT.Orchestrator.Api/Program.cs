@@ -3,6 +3,9 @@ using VatIT.Application.Interfaces;
 using VatIT.Application.Services;
 using VatIT.Infrastructure.Configuration;
 using VatIT.Infrastructure.Services;
+using Polly;
+using Polly.Timeout;
+using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,12 +40,23 @@ builder.Services.Configure<WorkerEndpoints>(
 // Register application services
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 
-// Register HTTP client for worker communication
+// Register HTTP client for worker communication with resilience and tuning
 builder.Services.AddHttpClient<IWorkerClient, WorkerClient>()
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        MaxConnectionsPerServer = 100,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+    })
     .ConfigureHttpClient(client =>
     {
-        client.Timeout = TimeSpan.FromSeconds(30);
-    });
+        client.Timeout = TimeSpan.FromSeconds(5);
+    })
+    .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(5)))
+    .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(2, _ => TimeSpan.FromMilliseconds(200)))
+    .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+
+// Response compression to reduce serialization and network overhead in dev
+builder.Services.AddResponseCompression();
 
 var app = builder.Build();
 

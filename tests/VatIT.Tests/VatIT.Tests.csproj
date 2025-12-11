@@ -24,9 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\VatIT.Application\VatIT.Application.csproj" />
-    <ProjectReference Include="..\..\src\VatIT.Domain\VatIT.Domain.csproj" />
-    <ProjectReference Include="..\..\src\VatIT.Infrastructure\VatIT.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Application\VatIT.Application\VatIT.Application.csproj" />
+    <ProjectReference Include="..\..\src\Domain\VatIT.Domain\VatIT.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\VatIT.Infrastructure\VatIT.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

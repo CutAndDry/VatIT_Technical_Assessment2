@@ -26,7 +26,7 @@ public class ValidateController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ValidationResponseDto>> Validate([FromBody] ValidationRequestDto request)
+    public ActionResult<ValidationResponseDto> Validate([FromBody] ValidationRequestDto request)
     {
         _logger.LogInformation("Validating address for transaction {TransactionId}", request.TransactionId);
 

@@ -12,8 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VatIT.Application\VatIT.Application.csproj" />
-    <ProjectReference Include="..\VatIT.Domain\VatIT.Domain.csproj" />
+    <ProjectReference Include="..\..\Application\VatIT.Application\VatIT.Application.csproj" />
+    <ProjectReference Include="..\..\Domain\VatIT.Domain\VatIT.Domain.csproj" />
   </ItemGroup>
 
 </Project>

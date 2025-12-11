@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VatIT.Domain\VatIT.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Domain\VatIT.Domain\VatIT.Domain.csproj" />
   </ItemGroup>
 
 </Project>

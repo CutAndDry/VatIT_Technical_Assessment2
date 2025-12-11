@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using VatIT.Application.Interfaces;
 using VatIT.Domain.DTOs;
 using VatIT.Infrastructure.Configuration;
@@ -12,11 +13,13 @@ public class WorkerClient : IWorkerClient
     private readonly HttpClient _httpClient;
     private readonly WorkerEndpoints _endpoints;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly ILogger<WorkerClient> _logger;
 
-    public WorkerClient(HttpClient httpClient, IOptions<WorkerEndpoints> endpoints)
+    public WorkerClient(HttpClient httpClient, IOptions<WorkerEndpoints> endpoints, ILogger<WorkerClient> logger)
     {
         _httpClient = httpClient;
         _endpoints = endpoints.Value;
+        _logger = logger;
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -69,6 +72,7 @@ public class WorkerClient : IWorkerClient
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("Worker request to '{Url}' failed with status {StatusCode}: {ReasonPhrase}", url, (int)response.StatusCode, response.ReasonPhrase);
                 throw new InvalidOperationException($"Worker request to '{url}' failed with status {(int)response.StatusCode}: {response.ReasonPhrase}. Response body: {body}");
             }
 
@@ -76,17 +80,20 @@ public class WorkerClient : IWorkerClient
             return JsonSerializer.Deserialize<TResponse>(responseJson, _jsonOptions)
                 ?? throw new InvalidOperationException("Failed to deserialize response");
         }
-        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new InvalidOperationException($"Worker request to '{url}' timed out.", ex);
+            _logger.LogWarning("Worker request to '{Url}' timed out.", url);
+            throw new InvalidOperationException($"Worker request to '{url}' timed out.");
         }
         catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException($"HTTP request error while calling worker at '{url}': {ex.Message}", ex);
+            _logger.LogWarning("HTTP request error while calling worker at '{Url}': {Message}", url, ex.Message);
+            throw new InvalidOperationException($"HTTP request error while calling worker at '{url}': {ex.Message}");
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Unexpected error while calling worker at '{url}': {ex.Message}", ex);
+            _logger.LogError("Unexpected error while calling worker at '{Url}': {Message}", url, ex.Message);
+            throw new InvalidOperationException($"Unexpected error while calling worker at '{url}': {ex.Message}");
         }
     }
 }
