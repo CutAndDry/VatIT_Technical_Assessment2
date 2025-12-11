@@ -176,7 +176,7 @@ public class BenchmarkController : ControllerBase
         var list = new List<TransactionRequest>(count);
         for (int i = 0; i < count; i++)
         {
-            list.Add(new TransactionRequest
+                list.Add(new TransactionRequest
             {
                 TransactionId = Guid.NewGuid().ToString(),
                 CustomerId = $"CUST-{i + 1}",
@@ -187,6 +187,7 @@ public class BenchmarkController : ControllerBase
                     State = (i % 2 == 0) ? "CA" : "NY",
                     City = (i % 2 == 0) ? "Los Angeles" : "New York"
                 },
+                    Currency = "USD",
                 Items = new List<Item>
                 {
                     new Item { Id = "item-1", Category = "electronics", Amount = 199.99m },
@@ -211,6 +212,7 @@ public class BenchmarkController : ControllerBase
                 State = src.Destination.State,
                 City = src.Destination.City
             },
+            Currency = src.Currency,
             Items = src.Items.Select(i => new Item { Id = i.Id, Category = i.Category, Amount = i.Amount }).ToList(),
             TotalAmount = src.TotalAmount
         };

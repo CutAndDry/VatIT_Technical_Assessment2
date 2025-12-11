@@ -32,7 +32,13 @@ public class TransactionController : ControllerBase
             if (string.Equals(request.MerchantId, "FORCEFAIL", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Transaction {TransactionId} forced to fail for testing (MerchantId=FORCEFAIL)", request.TransactionId);
-                return StatusCode(422, new { error = "Transaction processing failed (forced)", status = "FAILED", details = new[] { "Forced failure by test flag" }, gates = new[] { new { name = "validation", passed = false, message = "Skipped (forced failure)" } } });
+                return StatusCode(422, new VatIT.Orchestrator.Api.Models.ErrorResponse
+                {
+                    Error = "Transaction processing failed (forced)",
+                    Code = "BUSINESS_FAILED",
+                    Details = new[] { "Forced failure by test flag" },
+                    Meta = new { gates = new[] { new { name = "validation", passed = false, message = "Skipped (forced failure)" } } }
+                });
             }
 
             var response = await _orchestrationService.ProcessTransactionAsync(request, cancellationToken);
@@ -45,7 +51,12 @@ public class TransactionController : ControllerBase
             if (response.Status == "ERROR")
             {
                 _logger.LogError("Transaction {TransactionId} failed during processing: {Details}", request.TransactionId, response.AuditTrail.LastOrDefault());
-                return StatusCode(500, new { error = "An error occurred processing the transaction", details = response.AuditTrail });
+                return StatusCode(500, new VatIT.Orchestrator.Api.Models.ErrorResponse
+                {
+                    Error = "An error occurred processing the transaction",
+                    Code = "SERVER_ERROR",
+                    Details = response.AuditTrail
+                });
             }
 
             // Business-level failure (e.g. validation/applicability/exemption failed).
@@ -53,7 +64,13 @@ public class TransactionController : ControllerBase
             if (response.Status != "CALCULATED")
             {
                 _logger.LogWarning("Transaction {TransactionId} completed with non-calculated status {Status}", request.TransactionId, response.Status);
-                return StatusCode(422, new { error = "Transaction processing failed", status = response.Status, details = response.AuditTrail, gates = response.Gates });
+                return StatusCode(422, new VatIT.Orchestrator.Api.Models.ErrorResponse
+                {
+                    Error = "Transaction processing failed",
+                    Code = response.Status,
+                    Details = response.AuditTrail,
+                    Meta = new { gates = response.Gates }
+                });
             }
 
             return Ok(response);
@@ -61,7 +78,12 @@ public class TransactionController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing transaction {TransactionId}", request.TransactionId);
-            return StatusCode(500, new { error = "An error occurred processing the transaction", details = ex.Message });
+            return StatusCode(500, new VatIT.Orchestrator.Api.Models.ErrorResponse
+            {
+                Error = "An error occurred processing the transaction",
+                Code = "UNHANDLED_EXCEPTION",
+                Details = new[] { ex.Message }
+            });
         }
     }
 
