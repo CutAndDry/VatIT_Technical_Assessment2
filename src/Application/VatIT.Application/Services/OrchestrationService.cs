@@ -59,9 +59,9 @@ public class OrchestrationService : IOrchestrationService
                 response.Status = "FAILED";
 
                 // Mark remaining gates as skipped for the response so callers know what didn't run
-                response.Gates.Add(new GateResult { Name = "applicability", Passed = false, Message = "Skipped due to failed validation" });
-                response.Gates.Add(new GateResult { Name = "exemption", Passed = false, Message = "Skipped due to failed validation" });
-                response.Gates.Add(new GateResult { Name = "calculation", Passed = false, Message = "Skipped due to failed validation" });
+                response.Gates.Add(new GateResult { Name = "APPLICABILITY", Passed = false, Message = "Skipped due to failed validation" });
+                response.Gates.Add(new GateResult { Name = "EXEMPTION_CHECK", Passed = false, Message = "Skipped due to failed validation" });
+                response.Gates.Add(new GateResult { Name = "CALCULATION", Passed = false, Message = "Skipped due to failed validation" });
 
                 response.WorkerTimings["applicability"] = 0;
                 response.WorkerTimings["exemption"] = 0;
@@ -102,8 +102,8 @@ public class OrchestrationService : IOrchestrationService
                 response.Status = "FAILED";
 
                 // Mark remaining gates as skipped
-                response.Gates.Add(new GateResult { Name = "exemption", Passed = false, Message = "Skipped due to failed applicability" });
-                response.Gates.Add(new GateResult { Name = "calculation", Passed = false, Message = "Skipped due to failed applicability" });
+                response.Gates.Add(new GateResult { Name = "EXEMPTION_CHECK", Passed = false, Message = "Skipped due to failed applicability" });
+                response.Gates.Add(new GateResult { Name = "CALCULATION", Passed = false, Message = "Skipped due to failed applicability" });
 
                 response.WorkerTimings["exemption"] = 0;
                 response.WorkerTimings["calculation"] = 0;
@@ -145,7 +145,7 @@ public class OrchestrationService : IOrchestrationService
                 response.Status = "FAILED";
 
                 // Mark calculation as skipped
-                response.Gates.Add(new GateResult { Name = "calculation", Passed = false, Message = "Skipped due to failed exemption" });
+                response.Gates.Add(new GateResult { Name = "CALCULATION", Passed = false, Message = "Skipped due to failed exemption" });
                 response.WorkerTimings["calculation"] = 0;
 
                 return response;

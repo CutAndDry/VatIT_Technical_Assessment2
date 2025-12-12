@@ -29,17 +29,21 @@ public class TransactionController : ControllerBase
             _logger.LogInformation("Processing transaction {TransactionId}", request.TransactionId);
 
             // Support a simple test hook: if MerchantId == "FORCEFAIL" then return business failure
-            // I can simulate failure cases.
+            // This returns the canonical TransactionResponse shape with status FAILED so callers can parse consistently.
             if (string.Equals(request.MerchantId, "FORCEFAIL", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Transaction {TransactionId} forced to fail for testing (MerchantId=FORCEFAIL)", request.TransactionId);
-                return StatusCode(422, new VatIT.Orchestrator.Api.Models.ErrorResponse
+                var forcedResponse = new VatIT.Domain.Entities.TransactionResponse
                 {
-                    Error = "Transaction processing failed (forced)",
-                    Code = "BUSINESS_FAILED",
-                    Details = new[] { "Forced failure by test flag" },
-                    Meta = new { gates = new[] { new { name = "validation", passed = false, message = "Skipped (forced failure)" } } }
-                });
+                    TransactionId = request.TransactionId,
+                    Status = "FAILED",
+                    Gates = new List<VatIT.Domain.Entities.GateResult>
+                    {
+                        new VatIT.Domain.Entities.GateResult { Name = "FORCEFAIL", Passed = false, Message = "Forced failure by test flag" }
+                    },
+                    AuditTrail = new List<string> { "Forced failure by test flag" }
+                };
+                return StatusCode(422, forcedResponse);
             }
 
             var response = await _orchestrationService.ProcessTransactionAsync(request, cancellationToken);
@@ -52,12 +56,8 @@ public class TransactionController : ControllerBase
             if (response.Status == "ERROR")
             {
                 _logger.LogError("Transaction {TransactionId} failed during processing: {Details}", request.TransactionId, response.AuditTrail.LastOrDefault());
-                return StatusCode(500, new VatIT.Orchestrator.Api.Models.ErrorResponse
-                {
-                    Error = "An error occurred processing the transaction",
-                    Code = "SERVER_ERROR",
-                    Details = response.AuditTrail
-                });
+                // Return canonical TransactionResponse with status ERROR and audit trail for diagnostics
+                return StatusCode(500, response);
             }
 
             // Business-level failure (e.g. validation/applicability/exemption failed).
@@ -65,13 +65,8 @@ public class TransactionController : ControllerBase
             if (response.Status != "CALCULATED")
             {
                 _logger.LogWarning("Transaction {TransactionId} completed with non-calculated status {Status}", request.TransactionId, response.Status);
-                return StatusCode(422, new VatIT.Orchestrator.Api.Models.ErrorResponse
-                {
-                    Error = "Transaction processing failed",
-                    Code = response.Status,
-                    Details = response.AuditTrail,
-                    Meta = new { gates = response.Gates }
-                });
+                // Return canonical TransactionResponse (status will be FAILED) so clients can parse gates and auditTrail consistently
+                return StatusCode(422, response);
             }
 
             return Ok(response);

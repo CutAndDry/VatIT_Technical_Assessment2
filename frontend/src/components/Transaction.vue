@@ -23,16 +23,19 @@ const running = ref(false)
 const response = ref(null)
 
 const sample = {
-  transactionId: "",
-  customerId: "CUST-1",
-  merchantId: "MER-1",
+  transactionId: "txn_123",
+  merchantId: "merchant_456",
+  customerId: "customer_789",
   destination: { country: "US", state: "CA", city: "Los Angeles" },
-  currency: "USD",
-  items: [ { id: "item-1", category: "electronics", amount: 199.99 } ],
-  totalAmount: 199.99
+  items: [
+    { id: "item_1", category: "SOFTWARE", amount: 100.00 },
+    { id: "item_2", category: "PHYSICAL_GOODS", amount: 50.00 }
+  ],
+  totalAmount: 150.00,
+  currency: "USD"
 }
 
-const payload = ref(JSON.stringify({ ...sample, transactionId: cryptoRandomId() }, null, 2))
+const payload = ref(JSON.stringify(sample, null, 2))
 
 function cryptoRandomId(){ return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=> (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)) }
 
