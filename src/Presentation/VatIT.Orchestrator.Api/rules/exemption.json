@@ -1,0 +1,10 @@
+{
+  "exemptCustomers": [
+    "customer_exempt_001",
+    "customer_nonprofit_002"
+  ],
+  "categoryExemptions": {
+    "EDUCATION": ["Educational materials exemption"],
+    "MEDICAL": ["Medical supplies exemption"]
+  }
+}

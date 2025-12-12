@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "when": { "field": "totalAmount", "op": ">=", "value": 1000 },
+      "then": { "rate": 0.08, "note": "High-value transaction rate" }
+    },
+    {
+      "when": { "field": "totalAmount", "op": "<", "value": 1000 },
+      "then": { "rate": 0.06, "note": "Standard transaction rate" }
+    }
+  ],
+  "defaults": { "rate": 0.06 }
+}

@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "when": { "field": "itemsCount", "op": "<", "value": 1 },
+      "then": { "error": "Transaction must contain at least one item" }
+    },
+    {
+      "when": { "field": "merchantId", "op": "==", "value": "" },
+      "then": { "error": "Missing merchantId" }
+    }
+  ],
+  "notes": "Basic validation rules. Business users should extend as needed."
+}

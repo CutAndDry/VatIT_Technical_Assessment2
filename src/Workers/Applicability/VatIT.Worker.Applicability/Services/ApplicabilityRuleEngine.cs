@@ -4,6 +4,7 @@ namespace VatIT.Worker.Applicability.Services;
 
 public class ApplicabilityRuleEngine : IApplicabilityRuleEngine
 {
+    private readonly object _sync = new();
     // Seeded data mirrors previous controller logic
     private readonly Dictionary<string, Dictionary<string, decimal>> _merchantVolumes = new()
     {
@@ -110,5 +111,52 @@ public class ApplicabilityRuleEngine : IApplicabilityRuleEngine
 
         response.AuditLogs = auditLogs;
         return Task.FromResult(response);
+    }
+
+    public Task ApplyRulesAsync(System.Text.Json.JsonElement rules)
+    {
+        // rules expected shape: { thresholds: { STATE: number, ... }, merchantVolumes: { merchantId: { STATE: number } } }
+        lock (_sync)
+        {
+            try
+            {
+                if (rules.ValueKind != System.Text.Json.JsonValueKind.Object) return Task.CompletedTask;
+                if (rules.TryGetProperty("thresholds", out var thrObj) && thrObj.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var newThr = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var p in thrObj.EnumerateObject())
+                    {
+                        if (p.Value.TryGetDecimal(out var d)) newThr[p.Name] = d;
+                    }
+                    if (newThr.Count > 0)
+                    {
+                        _stateThresholds.Clear();
+                        foreach (var kv in newThr) _stateThresholds[kv.Key] = kv.Value;
+                    }
+                }
+
+                if (rules.TryGetProperty("merchantVolumes", out var mv) && mv.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var newM = new Dictionary<string, Dictionary<string, decimal>>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var m in mv.EnumerateObject())
+                    {
+                        if (m.Value.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                        var stateMap = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var s in m.Value.EnumerateObject())
+                        {
+                            if (s.Value.TryGetDecimal(out var d)) stateMap[s.Name] = d;
+                        }
+                        newM[m.Name] = stateMap;
+                    }
+                    if (newM.Count > 0)
+                    {
+                        _merchantVolumes.Clear();
+                        foreach (var kv in newM) _merchantVolumes[kv.Key] = kv.Value;
+                    }
+                }
+            }
+            catch { /* ignore */ }
+        }
+        return Task.CompletedTask;
     }
 }

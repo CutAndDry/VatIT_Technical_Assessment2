@@ -10,6 +10,10 @@ builder.WebHost.ConfigureKestrel(options =>
     options.ListenLocalhost(8001);
 });
 
+// register HttpClient to call orchestrator
+builder.Services.AddHttpClient("orchestrator", c => c.BaseAddress = new Uri("http://localhost:5100"));
+builder.Services.AddSingleton<VatIT.Worker.Validation.Services.RemoteRulesService>();
+
 var app = builder.Build();
 
 app.UseRouting();

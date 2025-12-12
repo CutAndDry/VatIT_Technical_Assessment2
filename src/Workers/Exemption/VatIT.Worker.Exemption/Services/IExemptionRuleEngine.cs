@@ -5,4 +5,5 @@ namespace VatIT.Worker.Exemption.Services;
 public interface IExemptionRuleEngine
 {
     Task<ExemptionResponseDto> EvaluateAsync(ExemptionRequestDto request);
+    Task ApplyRulesAsync(System.Text.Json.JsonElement rules);
 }

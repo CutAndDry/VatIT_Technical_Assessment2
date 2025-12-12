@@ -9,6 +9,7 @@ public class ApplicabilityController : ControllerBase
 {
     private readonly ILogger<ApplicabilityController> _logger;
     private readonly VatIT.Worker.Applicability.Services.IApplicabilityRuleEngine _ruleEngine;
+    private readonly VatIT.Worker.Applicability.Services.RemoteRulesService _rulesService;
     
     // Simulated merchant volume data (seeded with sample MER-1..MER-5 for benchmarks)
     private readonly Dictionary<string, Dictionary<string, decimal>> _merchantVolumes = new()
@@ -77,16 +78,20 @@ public class ApplicabilityController : ControllerBase
         ["FL"] = 100000m
     };
 
-    public ApplicabilityController(ILogger<ApplicabilityController> logger, VatIT.Worker.Applicability.Services.IApplicabilityRuleEngine ruleEngine)
+    public ApplicabilityController(ILogger<ApplicabilityController> logger, VatIT.Worker.Applicability.Services.IApplicabilityRuleEngine ruleEngine, VatIT.Worker.Applicability.Services.RemoteRulesService rulesService)
     {
         _logger = logger;
         _ruleEngine = ruleEngine;
+        _rulesService = rulesService;
     }
 
     [HttpPost]
     public async Task<ActionResult<ApplicabilityResponseDto>> CheckApplicability([FromBody] ApplicabilityRequestDto request)
     {
         _logger.LogInformation("Checking applicability for transaction {TransactionId}", request.TransactionId);
+
+        // If remote rules are available, apply them to the engine before evaluating
+        try { if (_rulesService?.Latest != null) await _ruleEngine.ApplyRulesAsync(_rulesService.Latest.Value); } catch { }
 
         var response = await _ruleEngine.EvaluateAsync(request);
 

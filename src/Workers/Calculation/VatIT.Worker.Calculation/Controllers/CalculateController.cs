@@ -9,8 +9,8 @@ public class CalculateController : ControllerBase
 {
     private readonly ILogger<CalculateController> _logger;
 
-    // Tax rate tables
-    private readonly Dictionary<string, decimal> _stateRates = new()
+    // Tax rate tables (defaults; may be overridden by remote rules)
+    private Dictionary<string, decimal> _stateRates = new()
     {
         ["CA"] = 0.06m,
         ["NY"] = 0.04m,
@@ -18,30 +18,33 @@ public class CalculateController : ControllerBase
         ["FL"] = 0.06m
     };
 
-    private readonly Dictionary<string, decimal> _countyRates = new()
+    private Dictionary<string, decimal> _countyRates = new()
     {
         ["Los Angeles County"] = 0.0025m,
         ["Orange County"] = 0.0025m,
         ["San Diego County"] = 0.005m
     };
 
-    private readonly Dictionary<string, decimal> _cityRates = new()
+    private Dictionary<string, decimal> _cityRates = new()
     {
         ["Los Angeles"] = 0.0225m,
         ["San Francisco"] = 0.0175m,
         ["San Diego"] = 0.01m
     };
 
-    private readonly Dictionary<string, decimal> _categoryModifiers = new()
+    private Dictionary<string, decimal> _categoryModifiers = new()
     {
         ["SOFTWARE"] = 0.01m,
         ["PHYSICAL_GOODS"] = 0.005m,
         ["DIGITAL_SERVICES"] = 0.015m
     };
 
-    public CalculateController(ILogger<CalculateController> logger)
+    private readonly VatIT.Worker.Calculation.Services.RemoteRulesService _rulesService;
+
+    public CalculateController(ILogger<CalculateController> logger, VatIT.Worker.Calculation.Services.RemoteRulesService rulesService)
     {
         _logger = logger;
+        _rulesService = rulesService;
     }
 
     [HttpPost]
@@ -59,6 +62,40 @@ public class CalculateController : ControllerBase
         var auditLogs = new List<string>();
 
         decimal totalFees = 0m;
+
+        // Attempt to override rates from remote rules if available
+        try
+        {
+            var latest = _rulesService.Latest;
+            if (latest.HasValue)
+            {
+                if (latest.Value.TryGetProperty("stateRates", out var sr) && sr.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var dict = new Dictionary<string, decimal>();
+                    foreach (var p in sr.EnumerateObject()) if (p.Value.TryGetDecimal(out var d)) dict[p.Name] = d;
+                    if (dict.Count>0) _stateRates = dict;
+                }
+                if (latest.Value.TryGetProperty("countyRates", out var cr) && cr.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var dict = new Dictionary<string, decimal>();
+                    foreach (var p in cr.EnumerateObject()) if (p.Value.TryGetDecimal(out var d)) dict[p.Name] = d;
+                    if (dict.Count>0) _countyRates = dict;
+                }
+                if (latest.Value.TryGetProperty("cityRates", out var cir) && cir.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var dict = new Dictionary<string, decimal>();
+                    foreach (var p in cir.EnumerateObject()) if (p.Value.TryGetDecimal(out var d)) dict[p.Name] = d;
+                    if (dict.Count>0) _cityRates = dict;
+                }
+                if (latest.Value.TryGetProperty("categoryModifiers", out var cm) && cm.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var dict = new Dictionary<string, decimal>();
+                    foreach (var p in cm.EnumerateObject()) if (p.Value.TryGetDecimal(out var d)) dict[p.Name] = d;
+                    if (dict.Count>0) _categoryModifiers = dict;
+                }
+            }
+        }
+        catch { /* ignore remote parsing errors */ }
 
         // Calculate fees for each item
         foreach (var item in request.Items)

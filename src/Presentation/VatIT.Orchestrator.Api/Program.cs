@@ -77,6 +77,9 @@ builder.Services.AddTransient<VatIT.Orchestrator.Api.Handlers.CorrelationHandler
 // Make HttpContext available for correlation propagation
 builder.Services.AddHttpContextAccessor();
 
+// Rules repository for admin UI and worker provisioning
+builder.Services.AddSingleton<VatIT.Orchestrator.Api.Services.IRulesRepository, VatIT.Orchestrator.Api.Services.FileRulesRepository>();
+
 // Response compression to reduce serialization and network overhead in dev
 builder.Services.AddResponseCompression();
 

@@ -24,6 +24,7 @@ public class BenchmarkController : ControllerBase
     /// <param name="targetUrl">The URL to POST to (defaults to local orchestrator /api/transaction/process).</param>
     /// <param name="totalRequests">Total number of requests to send (default 10000).</param>
     /// <param name="concurrency">Max concurrent requests (default 200).</param>
+    /// <param name="cancellationToken">Cancellation token to stop the benchmark early.</param>
     [HttpPost("run")]
     public async Task<IActionResult> RunBenchmark(
         [FromQuery] string? targetUrl = null,
