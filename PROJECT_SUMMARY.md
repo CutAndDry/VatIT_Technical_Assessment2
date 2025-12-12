@@ -1,5 +1,10 @@
 # Project Summary
 
+Last updated: 2025-12-12
+
+Changelog:
+- 2025-12-12: Documentation updated to reflect recent changes: benchmark UI, Polly tuning (retries/bulkhead), `BENCHMARK_MODE`, correlation-id propagation, and frontend improvements.
+
 ## What Was Built
 
 A complete **Orchestrator + Worker Pattern** system in C# using **Clean Architecture** for processing fee calculations through an async, non-blocking gate validation system.

@@ -1,5 +1,10 @@
 # Visual System Diagram
 
+Last updated: 2025-12-12
+
+Changelog:
+- 2025-12-12: Diagram notes updated to indicate where client correlation IDs and benchmarking controls (bulkhead / MaxConnections) are applied.
+
 ## Complete System Overview
 
 ```

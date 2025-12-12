@@ -1,5 +1,10 @@
 # Architecture Overview
 
+Last updated: 2025-12-12
+
+Changelog:
+- 2025-12-12: Architecture notes updated to mention correlation propagation, HttpClient/Polly tuning, and the `BENCHMARK_MODE` used for local load testing.
+
 ## System Architecture
 
 This system implements an **Orchestrator + Worker Pattern** with **Clean Architecture** principles for processing fee calculations through a series of validation gates.

@@ -1,3 +1,9 @@
+Last updated: 2025-12-12
+
+Changelog:
+- 2025-12-12: Added benchmark UI (Vite+Vue), correlation-id propagation, Polly tuning (reduced retries, bulkhead), `BENCHMARK_MODE` flag, and frontend improvements.
+
+# VatIT Technical Assessment
 # VatIT Technical Assessment - Orchestrator + Worker Pattern
 
 ## Overview

@@ -1,5 +1,10 @@
 # VatIT UI
 
+Last updated: 2025-12-12
+
+Changelog:
+- 2025-12-12: Frontend added (Vite + Vue) with Benchmark UI and Transaction form. Documented quick start and dev/prod build steps.
+
 This is a minimal Vite + Vue 3 frontend used to run the benchmark and submit transactions to the local Orchestrator API.
 
 Quick start:

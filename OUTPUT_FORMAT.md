@@ -1,5 +1,10 @@
 # Detailed Response Output Format
 
+Last updated: 2025-12-12
+
+Changelog:
+- 2025-12-12: Clarified output fields and added notes about per-gate timing and workerStats returned by the benchmark API.
+
 This document shows the detailed output format for the orchestrator system, demonstrating how gates passed/failed, per-item fee breakdown, total fees calculated, and audit trail of decisions made.
 
 ## Success Scenario - All Gates Pass
