@@ -16,6 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenLocalhost(5100); // HTTP
+    
     // Uncomment the line below to enable HTTPS on 5101 (requires dev cert)
     // options.ListenLocalhost(5101, listenOptions => listenOptions.UseHttps());
 });
@@ -39,11 +40,17 @@ builder.Services.Configure<WorkerEndpoints>(
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 
 // Register HTTP client for worker communication with resilience and tuning
+// Allow a benchmark mode to relax connection and bulkhead limits when running local load tests.
+// Enable by setting the environment variable `BENCHMARK_MODE=1` or configuration `BenchmarkMode=true`.
+var benchmarkMode = builder.Configuration.GetValue<bool>("BenchmarkMode") || Environment.GetEnvironmentVariable("BENCHMARK_MODE") == "1";
+int maxConnectionsPerServer = benchmarkMode ? 1000 : 100;
+int pooledConnectionLifetimeMinutes = 5;
+
 builder.Services.AddHttpClient<IWorkerClient, WorkerClient>()
     .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
     {
-        MaxConnectionsPerServer = 100,
-        PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+        MaxConnectionsPerServer = maxConnectionsPerServer,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(pooledConnectionLifetimeMinutes)
     })
     .ConfigureHttpClient(client =>
     {
@@ -53,15 +60,16 @@ builder.Services.AddHttpClient<IWorkerClient, WorkerClient>()
     // Register correlation handler used to propagate X-Correlation-ID to worker calls
     .AddHttpMessageHandler<VatIT.Orchestrator.Api.Handlers.CorrelationHandler>()
     // Bulkhead to limit concurrent calls to downstream workers and avoid cascading failures under heavy load
-    // Increased limits for local performance testing; tune these for your environment.
-    .AddPolicyHandler(Policy.BulkheadAsync<HttpResponseMessage>(maxParallelization: 200, maxQueuingActions: 800))
+    // Use higher limits when BENCHMARK_MODE is enabled to avoid queueing during controlled load tests.
+    .AddPolicyHandler(Policy.BulkheadAsync<HttpResponseMessage>(
+        maxParallelization: benchmarkMode ? 1000 : 200,
+        maxQueuingActions: benchmarkMode ? 5000 : 800))
     .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(55)))
-    .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(3, attempt =>
+    .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(1, attempt =>
     {
-        // exponential backoff with small jitter
-        var backoffMs = Math.Pow(2, attempt) * 200;
-        var jitter = Random.Shared.Next(0, 200);
-        return TimeSpan.FromMilliseconds(backoffMs + jitter);
+        // single quick retry with small jitter to avoid multi-second backoffs during benchmarks
+        var jitter = Random.Shared.Next(0, 100);
+        return TimeSpan.FromMilliseconds(100 + jitter);
     }))
     .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
@@ -71,6 +79,17 @@ builder.Services.AddHttpContextAccessor();
 
 // Response compression to reduce serialization and network overhead in dev
 builder.Services.AddResponseCompression();
+
+// Allow the local Vite dev server to call the API during development
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
@@ -99,6 +118,9 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "VatIT Orchestrator API v1");
     options.RoutePrefix = "swagger"; // serve at /swagger
 });
+
+// Enable CORS for the local frontend dev server
+app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
 
