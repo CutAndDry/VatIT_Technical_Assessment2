@@ -46,7 +46,6 @@ public class BenchmarkController : ControllerBase
 
         int success = 0;
         int failed = 0;
-        var firstErrors = new List<string>();
         var durations = new System.Collections.Concurrent.ConcurrentBag<double>();
         var workerDurations = new System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Concurrent.ConcurrentBag<double>>();
 
@@ -61,7 +60,7 @@ public class BenchmarkController : ControllerBase
             // pick a sample and give it a fresh TransactionId
             var sample = CloneWithNewId(samples[i % samples.Count]);
 
-            // No forced-fail manipulation here; benchmark uses the generated sample MerchantId values.
+            // benchmark uses the generated sample MerchantId values.
             var json = JsonSerializer.Serialize(sample, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -104,21 +103,13 @@ public class BenchmarkController : ControllerBase
                     else
                     {
                         Interlocked.Increment(ref failed);
-                        if (firstErrors.Count < 10)
-                        {
-                            lock (firstErrors) { firstErrors.Add($"{(int)resp.StatusCode}: {body}"); }
-                        }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Interlocked.Increment(ref failed);
                     sw.Stop();
                     durations.Add(sw.Elapsed.TotalMilliseconds);
-                    if (firstErrors.Count < 10)
-                    {
-                        lock (firstErrors) { firstErrors.Add(ex.Message); }
-                    }
                 }
                 finally
                 {
@@ -165,7 +156,7 @@ public class BenchmarkController : ControllerBase
             SlowestRequestMs = maxMs,
             WorkerStats = workerStats,
             ThroughputPerSec = Math.Round((double)totalRequests / Math.Max(1, stopwatch.Elapsed.TotalSeconds), 2),
-            SampleErrors = firstErrors
+            
         };
 
         return Ok(result);

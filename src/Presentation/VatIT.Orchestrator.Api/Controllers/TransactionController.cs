@@ -21,7 +21,7 @@ public class TransactionController : ControllerBase
 
     [HttpPost("process")]
     public async Task<ActionResult<TransactionResponse>> ProcessTransaction(
-        [FromBody] TransactionRequest request,
+        [FromBody] TransactionRequest request, // json object to DTO model binding
         CancellationToken cancellationToken)
     {
         try
@@ -29,6 +29,7 @@ public class TransactionController : ControllerBase
             _logger.LogInformation("Processing transaction {TransactionId}", request.TransactionId);
 
             // Support a simple test hook: if MerchantId == "FORCEFAIL" then return business failure
+            // I can simulate failure cases.
             if (string.Equals(request.MerchantId, "FORCEFAIL", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Transaction {TransactionId} forced to fail for testing (MerchantId=FORCEFAIL)", request.TransactionId);
