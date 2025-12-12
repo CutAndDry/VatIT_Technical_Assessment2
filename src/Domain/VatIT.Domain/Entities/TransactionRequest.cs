@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VatIT.Domain.Entities;
 
+
 public class TransactionRequest
 {
     [Required]
